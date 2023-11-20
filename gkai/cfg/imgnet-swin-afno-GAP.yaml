@@ -1,0 +1,113 @@
+project: p23-imgnet
+
+data:
+  args:
+    input_size: 256
+    subdir: imagenet
+  in_channels: 3
+  name: ImageNetDataset
+  out_channels: 1
+  train_args:
+    mixup:
+      cutmix_alpha: 0.1
+      mixup_alpha: 0.8
+      mode: pair
+      num_classes: 1000
+      prob: 0.8
+      switch_prob: 0.3
+    scale:
+    - 0.3
+    - 1.0
+    training: true
+  valid_args:
+    training: false
+
+dataloader:
+  args:
+    batch_size: 400
+    num_workers: 8
+    pin_memory: true
+    prefetch_factor: 8
+  name: monai.data.DataLoader
+  sampler:
+    args: {}
+    name: torch.utils.data.distributed.DistributedSampler
+
+dist:
+  backend: nccl
+  init_method: env://
+
+gradient_clipper:
+  enabled: true
+  log_name: norm_grad
+  max_norm: 5.0
+  norm_type: 2.0
+
+loss:
+  args: {}
+  name: torch.nn.CrossEntropyLoss
+
+lr_scheduler:
+  name: ""
+
+model:
+  args:
+    depths: [6, 6]
+    embed_dim: 256
+    lift_feature_sizes: [ 384 ]
+    lift_kernel_sizes: 2
+
+    head: PoolClassificationHead
+    head_kwargs:
+      num_classes: 1000
+    in_channels: 3
+    num_heads: 8
+    patch_size: 4
+    shrink_by_magnitude: true
+    direct_skip: False
+    use_checkpoint: False
+    spatial_size:
+    - 256
+    - 256
+    window_size: 32
+  model_save_subdir: imagenet-swin-afno-model
+  name: SwinAFNO
+  pretrained_path: null
+
+optimizer:
+  args:
+    lr: 0.001
+    weight_decay: 1.0e-04
+  name: torch.optim.AdamW
+
+run:
+  epochs: 100
+  eval_every_steps: 2000
+  report_interval: 20
+  save_interval: 2000
+  visualize_interval: 100
+
+validator:
+  larger_better: true
+  main_metric: ACC
+  metrics:
+    acc:
+      args:
+        average: micro
+        num_classes: 1000
+      name: torchmetrics.classification.MulticlassAccuracy
+
+wandb:
+  args:
+    config_exclude_keys:
+    - wandb
+    - project
+    entity: null
+    group: null
+    job_type: train
+    name: SwinAFNO-ce-l10-ens-15
+    notes: "SwinAFNO; CrossEntropy Loss; small; no mixup"
+    project: p23-imgnet
+    tags:
+    - swin-afno
+  enabled: true

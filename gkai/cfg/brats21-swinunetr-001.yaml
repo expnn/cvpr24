@@ -1,0 +1,113 @@
+project: &project "p23-brats21"
+
+run:
+  #  seed: "Random seed message used to init the seed for random, torch, numpy packages/modules. You can specify any string here"
+  epochs: 300
+  eval_every_steps: &eval_every_steps 250
+  report_interval: 10
+  visualize_interval: 25
+  save_interval: *eval_every_steps
+
+data:
+  name: BraTS21Dataset
+  in_channels: &in_channels 4
+  out_channels: &out_channels 3
+  spatial_shape: &spatial_shape [ 128, 128, 128 ]
+  output_channel_names: &class_names ["TC", "WT", "ET"]
+
+  args:
+    subdir: "brats21"
+    spatial_shape: *spatial_shape
+
+  train_args:
+    training: True
+
+  valid_args:
+    training: False
+
+model:
+  name: "SwinUNETR"
+  args:
+    img_size: *spatial_shape
+    in_channels: *in_channels
+    out_channels: *out_channels
+    depths: [2, 2, 2, 2]
+    num_heads: [3, 6, 12, 24]
+    feature_size: 48
+    use_checkpoint: True
+  model_save_subdir: 'brats21-swin-uneter-model'
+  pretrained_path: null
+
+loss:
+  name: "DiceLoss"
+  args:
+    to_onehot_y: False
+    sigmoid: True
+
+
+validator:
+  metrics:
+    dice:
+      name: "BinaryDice"
+      args:
+        num_classes: *out_channels
+        average: 'none'
+      value_names: *class_names
+      reduction: "mean"
+  main_metric: "DICE"
+  larger_better: True
+
+  inferencer:
+    name: "BraTS21DiceInferencer"
+    args:
+      threshold: 0.5
+      sw_batch_size: 4
+      inference_size: *spatial_shape
+
+optimizer:
+  name: "torch.optim.AdamW"
+  args:
+    weight_decay: 1e-5
+    lr: 1e-4
+
+
+lr_scheduler:
+  name: "LinearWarmupCosineAnnealingLR"
+  arg_adaptor:
+    name: "LinearWarmupCosineAnnealingLRArgAdaptor"
+    args:
+      warmup_portion: 0.16666
+  args:
+    warmup_start_lr: 0.0
+    eta_min: 0.0
+    last_epoch: -1
+
+dataloader:
+  name: "monai.data.DataLoader"
+  args:
+    batch_size: 1
+    num_workers: 4
+    prefetch_factor: 4
+    pin_memory: False
+#  sampler:
+#    name: "gkai.data.brats.BraTS21Sampler"
+
+dist:
+  backend: 'nccl'
+  init_method: 'env://'
+
+wandb:
+  enabled: False
+  args:
+    project: *project
+    name: null  # generate random name if null.
+    group: *project
+    entity: null
+    tags:
+      - "brats21"
+      - "swin-uneter"
+    notes: "swin-uneter for brats21"
+
+    config_exclude_keys:
+      - "wandb"
+      - "project"

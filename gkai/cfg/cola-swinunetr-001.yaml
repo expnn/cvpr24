@@ -1,0 +1,73 @@
+project: &project "p23-cola"
+
+run:
+  #  seed: "Random seed message used to init the seed for random, torch, numpy packages/modules. You can specify any string here"
+  epochs: 300
+  eval_every_steps: &eval_every_steps 250
+  report_interval: 10
+  visualize_interval: 25
+  save_interval: *eval_every_steps
+
+data:
+  name: ColaDataset
+  in_channels: &in_channels 1
+  out_channels: &out_channels 1
+  spatial_shape: &spatial_shape [ 128, 128, 128 ]
+
+model:
+  name: "SwinUNETR"
+  args:
+    img_size: *spatial_shape
+    in_channels: *in_channels
+    out_channels: *out_channels
+    depths: [2, 2, 2, 2]
+    num_heads: [3, 6, 12, 24]
+    feature_size: 48
+    use_checkpoint: True
+  model_save_subdir: 'cola-swin-uneter-model'
+  pretrained_path: null
+
+optimizer:
+  name: "torch.optim.AdamW"
+  args:
+    weight_decay: 1e-5
+    lr: 0.001
+
+
+lr_scheduler:
+  name: "LinearWarmupCosineAnnealingLR"
+  arg_adaptor:
+    name: "LinearWarmupCosineAnnealingLRArgAdaptor"
+    args:
+      warmup_portion: 0.16666
+  args:
+    warmup_start_lr: 1e-6
+    eta_min: 3e-5
+    last_epoch: -1
+
+dataloader:
+  args:
+    batch_size: 1
+    num_workers: 3
+    prefetch_factor: 8
+    pin_memory: True
+
+dist:
+  backend: 'nccl'
+  init_method: 'env://'
+
+wandb:
+  enabled: False
+  args:
+    project: *project
+    name: null  # generate random name if null.
+    group: &group cola
+    entity: null
+    tags:
+      - *group
+      - "swin-uneter"
+    notes: "swin-uneter for cola"
+
+    config_exclude_keys:
+      - "wandb"
+      - "project"

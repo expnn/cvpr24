@@ -1,0 +1,116 @@
+project: &project "p23-brats21"
+
+run:
+  #  seed: "Random seed message used to init the seed for random, torch, numpy packages/modules. You can specify any string here"
+  epochs: 200
+  eval_every_steps: &eval_every_steps 250
+  report_interval: 10
+  visualize_interval: 25
+  save_interval: *eval_every_steps
+
+data:
+  in_channels: &in_channels 4
+  out_channels: &out_channels 3
+  spatial_shape: &spatial_shape [ 128, 128, 128 ]
+  output_channel_names: &class_names ["TC", "WT", "ET"]
+
+  name: BraTS21Dataset
+  args:
+    subdir: "brats21"
+    spatial_shape: *spatial_shape
+
+  train_args:
+    training: True
+
+  valid_args:
+    training: False
+
+model:
+  name: "SwinAFNO"
+  args:
+    spatial_size: *spatial_shape
+    in_channels: *in_channels
+    out_channels: *out_channels
+    embed_dim: 80
+    window_size: 32
+    patch_size: 2
+    depths: [ 2, 2, 2, 2, 2, 2 ]
+    num_heads: [ 4, 4, 4, 8, 8, 8 ]
+    shrink_by_magnitude: True
+  model_save_subdir: 'brats21-swin-afno-model'
+  pretrained_path: null
+
+loss:
+  name: "MultiLabelCrossEntropyLoss"
+
+
+validator:
+  metrics:
+    dice:
+      name: "BinaryDice"
+      args:
+        num_classes: *out_channels
+        average: 'none'
+      value_names: *class_names
+      reduction: "mean"
+  main_metric: "DICE"
+  larger_better: True
+
+  inferencer:
+    name: "BraTS21MultiLabelInferencer"
+    args:
+      threshold: 0.0
+      sw_batch_size: 4
+      inference_size: *spatial_shape
+
+gradient_clipper:
+  max_norm: 2.0
+#  norm_type: 2.0
+  enabled: True
+
+optimizer:
+  name: "torch.optim.AdamW"
+  args:
+    weight_decay: 1e-5
+    lr: 0.001
+
+lr_scheduler:
+  name: "LinearWarmupCosineAnnealingLR"
+  arg_adaptor:
+    name: "LinearWarmupCosineAnnealingLRArgAdaptor"
+    args:
+      warmup_portion: 0.166667
+  args:
+    warmup_start_lr: 1e-5
+    eta_min: 2e-5
+    last_epoch: -1
+
+dataloader:
+  name: "monai.data.DataLoader"
+  args:
+    batch_size: 1
+    num_workers: 3
+    prefetch_factor: 8
+    pin_memory: True
+#  sampler:
+#    name: "gkai.data.brats.BraTS21Sampler"
+
+dist:
+  backend: 'nccl'
+  init_method: 'env://'
+
+wandb:
+  enabled: False
+#  watch:
+#    log_freq: 4
+#    log: "all"
+  args:
+    project: *project
+    group: *project
+    tags:
+      - "brats21"
+      - "rwin-afno"
+    notes: "rwin-afno for brats21, lift features"
+    config_exclude_keys:
+      - "wandb"
+      - "project"

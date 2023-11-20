@@ -1,0 +1,73 @@
+project: &project "p23-cola"
+
+run:
+  #  seed: "Random seed message used to init the seed for random, torch, numpy packages/modules. You can specify any string here"
+  epochs: 500
+  eval_every_steps: &eval_every_steps 250
+  report_interval: 10
+  visualize_interval: 25
+  save_interval: *eval_every_steps
+
+data:
+  name: ColaDataset
+  in_channels: &channels 1
+  spatial_shape: &spatial_shape [ 128, 128, 128 ]
+
+model:
+  name: "SwinAFNO"
+  args:
+    spatial_size: *spatial_shape
+    in_channels: *channels
+    out_channels: *channels
+    embed_dim: 64
+    window_size: 32
+    patch_size: 2
+    depths: [ 8 ]
+    num_heads: 8
+    shrink_by_magnitude: True
+  model_save_subdir: 'cola-swin-afno-model'
+  pretrained_path: null
+
+optimizer:
+  name: "torch.optim.AdamW"
+  args:
+    weight_decay: 1e-5
+    lr: 0.001
+
+
+lr_scheduler:
+  name: "LinearWarmupCosineAnnealingLR"
+  arg_adaptor:
+    name: "LinearWarmupCosineAnnealingLRArgAdaptor"
+    args:
+      warmup_portion: 0.0166667
+  args:
+    warmup_start_lr: 1e-6
+    eta_min: 3e-5
+    last_epoch: -1
+
+dataloader:
+  args:
+    batch_size: 1
+    num_workers: 3
+    prefetch_factor: 8
+
+dist:
+  backend: 'nccl'
+  init_method: 'env://'
+
+wandb:
+  enabled: False
+  args:
+    project: *project
+    name: null  # generate random name if null.
+    group: &group cola
+    entity: null
+    tags:
+      - *group
+      - "swin-afno"
+    notes: null
+
+    config_exclude_keys:
+      - "wandb"
+      - "project"
