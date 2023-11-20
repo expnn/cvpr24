@@ -1,0 +1,16 @@
+monai==1.2.0
+nibabel==5.1.0
+numpy>=1.23.5
+torch>=2.0.1
+torchvision>=0.15.2
+wandb>=0.15.8
+torchmetrics>=1.1.2
+einops==0.6.1
+
+timm~=0.9.7
+astropy~=5.1
+intervaltree~=3.1.0
+scipy>=1.9.1
+
+PyYAML~=6.0
+Faker~=19.6.2

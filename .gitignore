@@ -1,3 +1,9 @@
+# Custom
+/data/brats21/*
+!/data/brats21/brats21_folds.json
+/.idea/
+/cache/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
