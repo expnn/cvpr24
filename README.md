@@ -16,7 +16,7 @@ Download the BraTS21 dataset from [Kaggle](https://www.kaggle.com/datasets/dsche
 and extract it into the './data/brats21' folder. 
 Make sure the content of this folder looks like this: 
 
-![brats21 extracted content](asset%2Fbrats21-data-content.png)
+![brats21 extracted content](asset/brats21-data-content.png)
 
 ### Cosmological Simulation dataset
 Preparing...
